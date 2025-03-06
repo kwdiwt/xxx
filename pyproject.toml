@@ -1,0 +1,26 @@
+[project]
+name = "xxx"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "chen", email = "kwdiwt@sina.com"},
+]
+dependencies = ["flask>=3.1.0"]
+requires-python = "==3.13.*"
+readme = "README.md"
+license = {text = "MIT"}
+
+
+[tool.pdm]
+distribution = false
+
+[tool.pdm.scripts]
+start.cmd = "flask --app hello run -h 0.0.0.0 -p 8080"
+
+[tool.pyright]
+venv = ".venv"
+venvPath = "."
+
+[tool.ruff]
+# https://beta.ruff.rs/docs/rules/
+ignore = ["F401", "F841"]
