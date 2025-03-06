@@ -16,7 +16,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 # mirrors.ustc.edu.cn arm64 中国科学技术大学源
 # https://mirrors.ustc.edu.cn/help/ubuntu-ports.html
 #
-# 安装wordcloud 需要 gcc python3.12-dev
 RUN sed -i 's@//ports.ubuntu.com@//mirrors.ustc.edu.cn@g' /etc/apt/sources.list.d/ubuntu.sources && \
   apt-get update -y && \
   apt-get install curl python3.12 python-is-python3 python3.12-venv -y && \
