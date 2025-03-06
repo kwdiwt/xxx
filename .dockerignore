@@ -1,0 +1,11 @@
+.gitignore
+.dockerignore
+.pdm-python
+**/.DS_Store
+
+**/__pycache__
+.venv
+.git
+
+apk
+browser_data
