@@ -61,12 +61,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      # - name: Show Docker metadata
-      #   run: echo ${{ steps.meta.outputs.tags }}
-
-      # - name: Show Docker metadata1
-      #   run: echo '${{ steps.meta.outputs.labels }}'
-
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
@@ -76,6 +70,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           push: true
       # Sign the resulting Docker image digest.
       # This will only write to the public Rekor transparency log when the Docker
