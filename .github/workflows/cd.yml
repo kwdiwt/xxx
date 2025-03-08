@@ -79,7 +79,7 @@ jobs:
           platforms: linux/amd64 # 测试用
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          push: true
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
       # Sign the resulting Docker image digest.
       # This will only write to the public Rekor transparency log when the Docker
