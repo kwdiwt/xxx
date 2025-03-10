@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-
 env:
   # ghcr.io 是github搭建的一个 Docker Hub.
   # 需创建一个以token访问ghcr.io
@@ -15,12 +14,29 @@ env:
   #
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
+
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-24.04-arm
+
+    # matrix.platform 	定义需要构建的平台列表，触发并行任务 	 仅声明参数，不处理架构差异
+    # QEMU 	 提供跨架构仿真能力，确保非本地架构的构建指令可执行 	必需支撑矩阵中的异构平台
+    # Buildx 	 调用 QEMU 和 Docker 引擎，根据矩阵参数执行实际的多平台构建与推送操作 	依赖 QEMU 实现跨架构编译
+
+    # https://docs.docker.com/build/ci/github-actions/multi-platform/#distribute-build-across-multiple-runners
+    # In the previous example, each platform is built on the same runner which can take a
+    # long time depending on the number of platforms and your Dockerfile.
+    # To solve this issue you can use a matrix strategy to distribute the build for each
+    # platform across multiple runners and create manifest list using the
+    # buildx imagetools create command.
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          # - linux/amd64
+          - linux/arm64
 
     # 使用ghcr.io需要设置
     # Permissions for the GITHUB_TOKEN
@@ -29,16 +45,14 @@ jobs:
       contents: read
 
     steps:
+      - name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
       # https://github.com/docker/build-push-action?tab=readme-ov-file#git-context
       - name: Check out repository code
         uses: actions/checkout@v4
-
-      # Install the cosign tool
-      # https://github.com/sigstore/cosign-installer
-      # - name: Install cosign
-      #   uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 #v3.5.0
-      #   with:
-      #     cosign-release: 'v2.2.4'
 
       - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@v3
@@ -47,15 +61,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # https://docs.docker.com/desktop/release-notes/#new-14
+      # docker buildx build --platform=linux/amd64,linux/arm64 -t xxx
+      # 本地不需要仿真器也能构建成功的原因是Docker Desktop集成支持内置Rosetta 2 或 QEMU 仿真器。
       # Add support for more platforms with QEMU (optional)
       # https://github.com/docker/setup-qemu-action
-      # QEMU 添加仿真支持以便能够针对更多平台进行构建
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      # - name: Set up QEMU
+      #   uses: docker/setup-qemu-action@v3
 
       # Set up BuildKit Docker container builder to be able to build
       # multi-platform images and export cache
-      # 构建多种系统架构的Docker镜像
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -67,31 +82,73 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      # Build and push Docker image with Buildx (don't push on PR)
+      # Build and push Docker image with Buildx
       # https://github.com/docker/build-push-action
+      # 默认push选项是false
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@v6
         with:
           context: .
-          # github使用生成linux/arm64特别慢
-          # platforms: linux/amd64,linux/arm64
-          platforms: linux/amd64 # 测试用
+          platforms: ${{ matrix.platform }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,push-by-digest=true,name-canonical=true
+          # outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+          push: true
 
-          
-      # Sign the resulting Docker image digest.
-      # This will only write to the public Rekor transparency log when the Docker
-      # repository is public to avoid leaking data.  If you would like to publish
-      # transparency data even for private images, pass --force to cosign below.
-      # https://github.com/sigstore/cosign
-      # - name: Sign the published Docker image
-      #   env:
-      #     # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-      #     TAGS: ${{ steps.meta.outputs.tags }}
-      #     DIGEST: ${{ steps.build-and-push.outputs.digest }}
-      #   # This step uses the identity token to provision an ephemeral certificate
-      #   # against the sigstore community Fulcio instance.
-      #   run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+  #     - name: Export digest
+  #       run: |
+  #         mkdir -p ${{ runner.temp }}/digests
+  #         digest="${{ steps.build.outputs.digest }}"
+  #         touch "${{ runner.temp }}/digests/${digest#sha256:}"
+  #
+  #     - name: Upload digest
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: digests-${{ env.PLATFORM_PAIR }}
+  #         path: ${{ runner.temp }}/digests/*
+  #         if-no-files-found: error
+  #         retention-days: 1
+  #
+  # merge:
+  #   runs-on: ubuntu-latest
+  #   needs:
+  #     - build
+  #   steps:
+  #     - name: Download digests
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: ${{ runner.temp }}/digests
+  #         pattern: digests-*
+  #         merge-multiple: true
+  #
+  #     - name: Log into registry ${{ env.REGISTRY }}
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: ${{ env.REGISTRY }}
+  #         username: ${{ github.actor }}
+  #         password: ${{ secrets.GITHUB_TOKEN }}
+  #
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
+  #
+  #     - name: Docker meta
+  #       id: meta
+  #       uses: docker/metadata-action@v5
+  #       with:
+  #         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+  #         tags: |
+  #           type=ref,event=branch
+  #           type=ref,event=pr
+  #           type=semver,pattern={{version}}
+  #           type=semver,pattern={{major}}.{{minor}}
+  #
+  #     - name: Create manifest list and push
+  #       working-directory: ${{ runner.temp }}/digests
+  #       run: |
+  #         docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+  #           $(printf '${{ env.IMAGE_NAME }}@sha256:%s ' *)
+  #
+  #     - name: Inspect image
+  #       run: |
+  #         docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
