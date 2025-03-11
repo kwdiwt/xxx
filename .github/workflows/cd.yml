@@ -101,13 +101,13 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
-          # outputs: type=image,push-by-digest=true,name-canonical=true
 
       - name: Export digest
         run: |
           mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "${{ runner.temp }}/digests/${digest#sha256:}"
+          echo ${{ steps.build.outputs.digest }}
  
       - name: Upload digest
         uses: actions/upload-artifact@v4
