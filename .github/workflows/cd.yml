@@ -37,14 +37,11 @@ jobs:
         # github arm 架构的runners公共仓库有ubuntu-24.04-arm，私有仓库使用macos-latest。
         # 在github x86 runner上使用QEMU构建arm64镜像需要效率极其慢,
         # 以当前这个项目为例需要30分钟左右,使用ubuntu-24.04-arm则2分钟左右可成功。
-        os:
-          - ubuntu-latest
-          - ubuntu-24.04-arm
         include:
           - os: ubuntu-latest
             platform: linux/amd64
-          - os: ubuntu-24.04-arm
-            platform: linux/arm64
+          # - os: ubuntu-24.04-arm
+          #   platform: linux/arm64
 
     # 使用ghcr.io需要设置
     # Permissions for the GITHUB_TOKEN
@@ -98,6 +95,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: ${{ matrix.platform }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
@@ -107,7 +105,6 @@ jobs:
           mkdir -p ${{ runner.temp }}/digests
           digest="${{ steps.build.outputs.digest }}"
           touch "${{ runner.temp }}/digests/${digest#sha256:}"
-          echo ${{ steps.build.outputs.digest }}
  
       - name: Upload digest
         uses: actions/upload-artifact@v4
