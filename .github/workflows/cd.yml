@@ -38,7 +38,7 @@ jobs:
         # 在github x86 runner上使用QEMU构建arm64镜像需要效率极其慢,
         # 以当前这个项目为例需要30分钟左右,使用ubuntu-24.04-arm则2分钟左右可成功。
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             platform: linux/amd64
           # - os: ubuntu-24.04-arm
           #   platform: linux/arm64
@@ -99,6 +99,9 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+          load: true
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
 
       - name: Export digest
         run: |
