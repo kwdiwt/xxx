@@ -98,7 +98,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=docker,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+          load: true
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
