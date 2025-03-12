@@ -17,6 +17,13 @@ env:
 
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+
+# 使用ghcr.io需要设置
+# Permissions for the GITHUB_TOKEN
+permissions:
+  packages: write
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -42,24 +49,6 @@ jobs:
             platform: linux/amd64
           # - os: ubuntu-24.04-arm
           #   platform: linux/arm64
-
-    # 使用ghcr.io需要设置
-    # Permissions for the GITHUB_TOKEN
-    permissions:
-      actions: write
-      attestations: write
-      checks: write
-      deployments: write
-      discussions: write
-      pages: write
-      pull-requests: write
-      repository-projects: write
-      security-events: write
-      statuses: read
-      packages: write
-      contents: write
-      id-token: write
-      issues: write
 
     steps:
       - name: Prepare
