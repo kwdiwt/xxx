@@ -213,7 +213,7 @@ jobs:
 
       - name: output
         run:
-          echo ${{ steps.push.outputs.tags }}||||${{ steps.push.outputs.digest }}
+          echo ${{ steps.push.outputs.tags }}...${{ steps.push.outputs.digest }}
 #       - name: Export digest
 #         run: |
 #           mkdir -p ${{ runner.temp }}/digests
