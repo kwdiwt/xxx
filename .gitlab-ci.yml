@@ -1,0 +1,60 @@
+variables:
+  REGISTRY: "registry.gitlab.com"  # GitLab 自带的 Docker Registry
+  IMAGE_NAME: "$REGISTRY/$CI_PROJECT_PATH"
+
+stages:
+  - build
+  - merge
+
+# 构建多平台 Docker 镜像
+build:
+  stage: build
+  script:
+    - platform="${CI_PLATFORM}"  # 模拟 matrix.platform，需手动指定或通过变量传递
+    - export PLATFORM_PAIR=${platform//\//-}  # 转换平台标识
+    - echo "Logging into $REGISTRY..."
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" $REGISTRY
+    - echo "Setting up Docker Buildx..."
+    - docker buildx create --use
+    - echo "Extracting Docker metadata..."
+    # 此处模拟 docker/metadata-action，GitLab CI/CD 中需手动处理元数据
+    - IMAGE_TAGS="${IMAGE_NAME}:${CI_COMMIT_REF_SLUG}"
+    - echo "Building and pushing Docker image for $platform..."
+    - docker buildx build --platform "$platform" -t "$IMAGE_TAGS" . --push
+    - echo "Exporting digest..."
+    - DIGEST=$(docker images --filter=reference='$IMAGE_TAGS' --format='{{.Digest}}')
+    - mkdir -p $CI_PROJECT_DIR/digests
+    - echo "$DIGEST" > $CI_PROJECT_DIR/digests/$(echo $DIGEST | cut -d':' -f2)
+  artifacts:
+    paths:
+      - digests/*
+    expire_in: 1 day
+  parallel:
+    matrix:
+      - CI_PLATFORM: ["linux/amd64", "linux/arm64"]  # 定义构建平台矩阵
+
+# 合并多平台镜像入口
+merge:
+  stage: merge
+  script:
+    - echo "Downloading digests..."
+    - mkdir -p $CI_PROJECT_DIR/digests
+    - for artifact in $(curl --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" "$CI_API_V4_PROJECT_URL/jobs/artifacts/$CI_DEPENDENCY_JOB_ID/raw/digests-*/?job=build"); do
+        curl --silent --show-error --output - --location "$artifact" | tar -xz -C $CI_PROJECT_DIR/digests --strip-components=1
+      done
+    - echo "Logging into $REGISTRY..."
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" $REGISTRY
+    - echo "Setting up Docker Buildx..."
+    - docker buildx create --use
+    - echo "Creating manifest list and pushing..."
+    - DIGESTS=$(ls $CI_PROJECT_DIR/digests/*.digest)
+    - MANIFEST_LIST_CMD="docker buildx imagetools create"
+    - for digest in $DIGESTS; do
+        MANIFEST_LIST_CMD="$MANIFEST_LIST_CMD -t $IMAGE_NAME@$(cat $digest)"
+      done
+    - eval $MANIFEST_LIST_CMD
+    - echo "Inspecting image..."
+    - docker buildx imagetools inspect $IMAGE_NAME:${CI_COMMIT_REF_SLUG}
+  needs:
+    - job: build
+      artifacts: true
