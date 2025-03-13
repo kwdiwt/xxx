@@ -39,7 +39,8 @@ merge:
   script:
     - echo "Downloading digests..."
     - mkdir -p $CI_PROJECT_DIR/digests
-    - for artifact in $(curl --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" "$CI_API_V4_PROJECT_URL/jobs/artifacts/$CI_DEPENDENCY_JOB_ID/raw/digests-*/?job=build"); do
+    - |
+      for artifact in $(curl --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" "$CI_API_V4_PROJECT_URL/jobs/artifacts/$CI_DEPENDENCY_JOB_ID/raw/digests-*/?job=build"); do
         curl --silent --show-error --output - --location "$artifact" | tar -xz -C $CI_PROJECT_DIR/digests --strip-components=1
       done
     - echo "Logging into $REGISTRY..."
