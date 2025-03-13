@@ -16,7 +16,7 @@ env:
   REGISTRY: ghcr.io
 
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository }}
+  IMAGE_NAME: ${{ format('{0}/{1}', env.REGISTRY, github.repository) }}
 
 # 使用ghcr.io需要设置
 # 全局权限设置
