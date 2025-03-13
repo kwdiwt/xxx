@@ -13,10 +13,10 @@ env:
   # https://www.chenshaowen.com/blog/github-container-registry.html
   #
   # Use docker.io for Docker Hub if empty
-  REGISTRY: "ghcr.io"
+  REGISTRY: ghcr.io
 
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository }}
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 # 使用ghcr.io需要设置
 # 全局权限设置
