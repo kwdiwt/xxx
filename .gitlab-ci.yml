@@ -1,6 +1,5 @@
 variables:
-  REGISTRY: "registry.gitlab.com"  # GitLab 自带的 Docker Registry
-  IMAGE_NAME: "$REGISTRY/$CI_PROJECT_PATH"
+  IMAGE_NAME: "$CI_REGISTRY/$CI_PROJECT_PATH"
 
 stages:
   - build
@@ -13,8 +12,8 @@ build:
   script:
     - platform="${CI_PLATFORM}"  # 模拟 matrix.platform，需手动指定或通过变量传递
     - export PLATFORM_PAIR=${platform//\//-}  # 转换平台标识
-    - echo "Logging into $REGISTRY..."
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" $REGISTRY
+    - echo "Logging into $CI_REGISTRY..."
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" $CI_REGISTRY
     - echo "Setting up Docker Buildx..."
     - docker buildx create --use
     - echo "Extracting Docker metadata..."
@@ -44,8 +43,8 @@ merge:
       for artifact in $(curl --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" "$CI_API_V4_PROJECT_URL/jobs/artifacts/$CI_DEPENDENCY_JOB_ID/raw/digests-*/?job=build"); do
         curl --silent --show-error --output - --location "$artifact" | tar -xz -C $CI_PROJECT_DIR/digests --strip-components=1
       done
-    - echo "Logging into $REGISTRY..."
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" $REGISTRY
+    - echo "Logging into $CI_REGISTRY..."
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" $CI_REGISTRY
     - echo "Setting up Docker Buildx..."
     - docker buildx create --use
     - echo "Creating manifest list and pushing..."
