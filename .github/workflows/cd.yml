@@ -16,7 +16,7 @@ env:
   REGISTRY: ghcr.io
 
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ghcr.io/${{ github.repository }}
+  IMAGE_NAME: ${{ env.REGISTRY }}/${{ github.repository }}
 
 # 使用ghcr.io需要设置
 # 全局权限设置
@@ -116,6 +116,9 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # 统一多平台镜像入口
+  # 将不同架构（如 linux/amd64 和 linux/arm64）的独立镜像合并为单一的虚拟镜像入口，
+  # 用户通过 镜像名:标签（如 app:main）即可自动拉取适配当前平台的镜像
   merge:
     runs-on: ubuntu-latest
     needs:
