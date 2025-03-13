@@ -1,8 +1,6 @@
 # https://github.com/actions/starter-workflows/blob/main/ci/docker-publish.yml
 name: Docker
 
-varrr: ghcr.io
-
 on:
   push:
     branches:
@@ -18,7 +16,7 @@ env:
   REGISTRY: ghcr.io
 
   # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ varrr }}/${{ github.repository }}
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 # 使用ghcr.io需要设置
 # 全局权限设置
