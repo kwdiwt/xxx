@@ -8,6 +8,7 @@ stages:
 
 # 构建多平台 Docker 镜像
 build:
+  image: docker:stable
   stage: build
   script:
     - platform="${CI_PLATFORM}"  # 模拟 matrix.platform，需手动指定或通过变量传递
